@@ -1,1 +1,0 @@
-{"root":["./src/main.tsx","./src/components/calculator.tsx","./src/components/usecalculator.ts","./src/logic/addition.ts","./src/logic/calculator.ts","./src/logic/division.ts","./src/logic/multiplication.ts","./src/logic/substraction.ts"],"version":"5.8.3"}

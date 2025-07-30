@@ -9,7 +9,6 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "cli": "tsx src/calculator-cli.ts",
     "electron": "wait-on http://localhost:5173 && electron .",
     "start": "concurrently \"npm:dev\" \"npm:electron\""
   },
