@@ -8,19 +8,13 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "./dist",
     "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "*": ["src/*", "node_modules/*"]
+    }
   },
-  "include": ["src/**/*.tsx", "src/**/*.ts", "src/main.tsx"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/calculator-cli.ts",
-    "src/calculator.ts",
-    "src/addition.ts",
-    "src/division.ts",
-    "src/multiplication.ts",
-    "src/substraction.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "src/cli/calculator-cli.ts"]
 }
