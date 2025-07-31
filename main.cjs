@@ -1,8 +1,9 @@
-// main.cjs
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 
-const isDev = !app.isPackaged; // 🔍 Checks if we're in dev mode
+require("./electron/ipcCalculator.cjs"); // ✅ Include IPC logic
+
+const isDev = !app.isPackaged;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -14,19 +15,19 @@ function createWindow() {
     fullscreenable: false,
     webPreferences: {
       contextIsolation: true,
+      preload: path.join(__dirname, "electron/preload.js"),
+      nodeIntegration: false,
     },
   });
+  console.log("Preload path:", path.join(__dirname, "electron/preload.js")); // Debug log
 
   if (isDev) {
-    // 🚀 Development: load from Vite server
     win.loadURL("http://localhost:5173");
   } else {
-    // 📦 Production: load built index.html
     win.loadFile(path.join(__dirname, "dist", "index.html"));
   }
 }
 
-// App lifecycle
 app.whenReady().then(() => {
   createWindow();
 

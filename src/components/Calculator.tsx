@@ -1,4 +1,3 @@
-// src/components/Calculator.tsx
 import React, { useEffect } from "react";
 import { useCalculator } from "./useCalculator";
 
@@ -60,7 +59,11 @@ const Calculator: React.FC = () => {
           <div className="text-right text-lg text-gray-600 font-mono overflow-hidden whitespace-nowrap">
             {expression}
           </div>
-          <div className="text-right text-5xl text-gray-800 font-mono font-medium overflow-hidden whitespace-nowrap">
+          <div
+            className={`text-right text-5xl font-mono font-medium overflow-hidden whitespace-nowrap ${
+              getDisplayValue() === "Error" ? "text-red-500" : "text-gray-800"
+            }`}
+          >
             {getDisplayValue()}
           </div>
         </div>

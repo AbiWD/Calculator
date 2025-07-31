@@ -1,4 +1,3 @@
-// src/calculator.ts
 import { add } from "./addition";
 import { subtract } from "./substraction";
 import { multiply } from "./multiplication";
@@ -59,8 +58,6 @@ export class Calculator {
   set(value: number): void {
     this.currentResult = value;
     // Only add to history if it's a direct set, not part of a calculation chain
-    // This might need more sophisticated logic depending on desired history behavior
-    // For now, we'll let `calculate` handle history for operations.
   }
 
   /**

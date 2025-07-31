@@ -1,6 +1,20 @@
-// src/components/useCalculator.ts
 import { useState } from "react";
-import { Calculator as CalculatorLogic, Operator } from "../logic/calculator";
+import { Calculator as CalculatorLogic } from "../logic/calculator";
+
+// Declare electronAPI type to satisfy TypeScript
+declare global {
+  interface Window {
+    electronAPI: {
+      saveOperation: (operation: {
+        expression: string;
+        result: string;
+      }) => Promise<void>;
+      getHistory: () => Promise<any[]>;
+    };
+  }
+}
+
+const electronAPI = (window as any)?.electronAPI || null;
 
 export const useCalculator = () => {
   const [input, setInput] = useState<string>("");
@@ -11,103 +25,137 @@ export const useCalculator = () => {
 
   const calculator = new CalculatorLogic();
 
-  const handleNumber = (value: string) => {
-    if (result !== null && operator === null && input === "") {
-      setResult(null);
+  const handleClick = (value: string) => {
+    // Number input
+    if (!isNaN(Number(value))) {
+      setInput((prev) => prev + value);
     }
-    setInput((prev) => prev + value);
-  };
-
-  const handleDecimal = () => {
-    if (!input.includes(".")) {
-      setInput((prev) => prev + ".");
+    // Decimal point
+    else if (value === ".") {
+      if (!input.includes(".")) setInput((prev) => prev + ".");
     }
-  };
-
-  const handleOperator = (value: Operator) => {
-    const displayOp = getDisplayOperator(value);
-
-    if (input !== "") {
-      const currentOperand = Number(input);
-
-      if (operator && firstOperand !== null) {
-        // Perform previous calculation first
-        calculator.set(firstOperand);
-        const newResult = calculator.calculate(operator, currentOperand);
-        setResult(newResult);
-        setFirstOperand(newResult);
-        setExpression(`${newResult} ${displayOp}`);
-      } else {
-        setFirstOperand(currentOperand);
-        setExpression(`${currentOperand} ${displayOp}`);
-      }
-
-      setInput("");
-    } else if (result !== null) {
-      setFirstOperand(result);
-      setExpression(`${result} ${displayOp}`);
-    }
-
-    setOperator(value);
-  };
-
-  const handleEquals = () => {
-    if (operator && firstOperand !== null && input !== "") {
-      try {
-        const secondOperand = Number(input);
-        calculator.set(firstOperand);
-        const newResult = calculator.calculate(operator, secondOperand);
-        setResult(newResult);
-        setExpression(
-          `${firstOperand} ${getDisplayOperator(operator)} ${input} =`
-        );
-        setInput("");
-        setFirstOperand(newResult);
-        setOperator(null);
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setInput("Err");
-        }
-      }
-    }
-  };
-
-  const handleControl = (value: "AC" | "⌫") => {
-    if (value === "AC") {
+    // Clear all
+    else if (value === "AC") {
       setInput("");
       setResult(null);
       setOperator(null);
       setFirstOperand(null);
       setExpression("");
-    } else if (value === "⌫") {
+    }
+    // Backspace
+    else if (value === "⌫") {
       setInput((prev) => prev.slice(0, -1));
     }
-  };
-
-  const handlePercent = () => {
-    if (input !== "") {
-      const percentValue = Number(input) / 100;
-      setInput(percentValue.toString());
+    // Percentage
+    else if (value === "%") {
+      if (input !== "" && !isNaN(Number(input))) {
+        const num = Number(input) / 100;
+        setInput(num.toString());
+        if (firstOperand !== null && operator) {
+          setExpression(
+            `${firstOperand} ${getDisplayOperator(operator)} ${num}`
+          );
+        }
+      }
     }
-  };
-
-  const handleNegate = () => {
-    if (input !== "") {
-      const negatedValue = (-1 * Number(input)).toString();
-      setInput(negatedValue);
+    // Negate
+    else if (value === "+/-") {
+      if (input !== "" && !isNaN(Number(input))) {
+        const num = -Number(input);
+        setInput(num.toString());
+        if (firstOperand !== null && operator) {
+          setExpression(
+            `${firstOperand} ${getDisplayOperator(operator)} ${num}`
+          );
+        }
+      }
     }
-  };
+    // Equals
+    else if (value === "=") {
+      if (
+        operator &&
+        firstOperand !== null &&
+        input !== "" &&
+        !isNaN(Number(input))
+      ) {
+        try {
+          const secondOperand = Number(input);
+          if (isNaN(secondOperand)) {
+            setInput("Error");
+            setTimeout(() => setInput(""), 1000);
+            return;
+          }
+          calculator.set(firstOperand);
+          const newResult = calculator.calculate(operator, secondOperand);
+          const exp = `${expression} ${input}`; // Use the full expression up to this point
 
-  const handleClick = (value: string) => {
-    if (!isNaN(Number(value))) return handleNumber(value);
-    if (value === ".") return handleDecimal();
-    if (value === "=") return handleEquals();
-    if (["+", "-", "*", "/"].includes(value))
-      return handleOperator(value as Operator);
-    if (value === "AC" || value === "⌫")
-      return handleControl(value as "AC" | "⌫");
-    if (value === "%") return handlePercent();
-    if (value === "+/-") return handleNegate();
+          setResult(newResult);
+          setExpression(`${exp} =`);
+          setInput("");
+          setFirstOperand(newResult);
+          setOperator(null);
+
+          if (electronAPI) {
+            electronAPI
+              .saveOperation({ expression: exp, result: String(newResult) })
+              .then(() => {
+                console.log("Operation saved:", exp, newResult);
+              })
+              .catch((err: Error) => {
+                console.error("Failed to save operation to DB:", err);
+              });
+          }
+        } catch (error: unknown) {
+          setInput("Error");
+          setTimeout(() => setInput(""), 1000);
+        }
+      }
+    }
+    // Operators
+    else if (["+", "-", "*", "/"].includes(value)) {
+      if (input === "" && result !== null) {
+        // Chained operation after =
+        setFirstOperand(result);
+        setResult(null);
+        const internalOperator =
+          value === "*" ? "x" : value === "/" ? "÷" : value;
+        setOperator(value as Operator);
+        setInput("");
+        setExpression(`${result} ${internalOperator}`);
+      } else if (input !== "" && !isNaN(Number(input))) {
+        const currentOperand = Number(input);
+        if (firstOperand !== null && operator) {
+          // Evaluate previous operation for chained calculations
+          try {
+            calculator.set(firstOperand);
+            const newResult = calculator.calculate(operator, currentOperand);
+            const exp = `${firstOperand} ${getDisplayOperator(
+              operator
+            )} ${currentOperand}`;
+            setResult(newResult);
+            setFirstOperand(newResult);
+            const internalOperator =
+              value === "*" ? "x" : value === "/" ? "÷" : value;
+            setOperator(value as Operator);
+            setInput("");
+            setExpression(`${newResult} ${internalOperator}`);
+            // No save here, only on =
+          } catch (error: unknown) {
+            setInput("Error");
+            setTimeout(() => setInput(""), 1000);
+            return;
+          }
+        } else {
+          // First operator in sequence
+          setFirstOperand(currentOperand);
+          const internalOperator =
+            value === "*" ? "x" : value === "/" ? "÷" : value;
+          setOperator(value as Operator);
+          setInput("");
+          setExpression(`${currentOperand} ${internalOperator}`);
+        }
+      }
+    }
   };
 
   const getDisplayValue = () => {
